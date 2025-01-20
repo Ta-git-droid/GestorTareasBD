@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Tarea_7_GestorTareas</string>
+    <string name="añadir_tarea">añadir tarea</string>
+    <string name="seleccionar_asigatura">seleccionar asignatura</string>
+    <string name="t_tulo_de_la_tarea">título de la tarea</string>
+    <string name="descripci_n_de_la_tarea">descripción de la tarea</string>
+    <string name="fecha_de_entrega">fecha de entrega</string>
+    <string name="hora_de_entrega">hora de entrega</string>
+    <string name="cancelar">cancelar</string>
+    <string name="guardar">guardar</string>
+    <string name="pmdm">pmdm</string>
+    <string name="título_de_la_tarea">título de la tarea\n</string>
+    <string name="descripción_de_la_tarea">descripcion de la tarea</string>
+    <string name="fecha_de_entrega_20_12_2024">fecha de entrega</string>
+    <string name="hora_de_entrega_10_00">hora de entrega</string>
+    <string name="completada">completada</string>
+    <string name="editar">editar</string>
+    <string name="eliminar">eliminar</string>
+    <string name="marcar_como_completado">marcar como completado</string>
+</resources>
