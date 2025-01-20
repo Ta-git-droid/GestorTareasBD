@@ -25,6 +25,7 @@ public class BaseDatosTareas extends SQLiteOpenHelper {
     private static final String COLUMN_HORA_ENTREGA = "horaEntrega";
     private static final String COLUMN_ESTACOMPLETADA = "estaCompletada";
 
+
     public BaseDatosTareas(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -72,7 +73,7 @@ public class BaseDatosTareas extends SQLiteOpenHelper {
 
         Cursor cursor = db.query(TABLE_TAREAS, null, null, null, null, null, null);
 
-        // Asegúrate de que las columnas existen antes de acceder a ellas
+        // Comprobar que las columnas existen antes de acceder a ellas
         int idIndex = cursor.getColumnIndex(COLUMN_ID);
         int asignaturaIndex = cursor.getColumnIndex(COLUMN_ASIGNATURA);
         int tituloIndex = cursor.getColumnIndex(COLUMN_TITULO);
@@ -85,7 +86,7 @@ public class BaseDatosTareas extends SQLiteOpenHelper {
         if (idIndex >= 0 && asignaturaIndex >= 0 && tituloIndex >= 0 && descripcionIndex >= 0 &&
                 fechaEntregaIndex >= 0 && horaEntregaIndex >= 0 && estaCompletadaIndex >= 0) {
 
-            // Recorre el cursor y obtén los datos
+            // Recorre el cursor y obtiene los datos
             if (cursor.moveToFirst()) {
                 do {
                     // Accede a las columnas
@@ -97,7 +98,7 @@ public class BaseDatosTareas extends SQLiteOpenHelper {
                     String horaEntrega = cursor.getString(horaEntregaIndex);
                     boolean estaCompletada = cursor.getInt(estaCompletadaIndex) == 1;
 
-                    // Procesar los datos obtenidos (por ejemplo, agregarlos a una lista)
+                    // Procesar los datos obtenidos (agregarlos a una lista)
                     Tarea tarea = new Tarea(id, asignatura, titulo, descripcion, fechaEntrega, horaEntrega, estaCompletada);
                     tareaList.add(tarea);
                 } while (cursor.moveToNext());
@@ -122,6 +123,7 @@ public class BaseDatosTareas extends SQLiteOpenHelper {
     public void actualizarTarea(Tarea tarea) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
+        values.put(COLUMN_ASIGNATURA,tarea.setAsignatura(String));
         values.put(COLUMN_ESTACOMPLETADA, tarea.estaCompletada() ? 1 : 0);
         db.update(TABLE_TAREAS, values, COLUMN_ID + " = ?", new String[]{String.valueOf(tarea.getId())});
         db.close();
