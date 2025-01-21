@@ -64,7 +64,12 @@ public class BaseDatosTareas extends SQLiteOpenHelper {
         try {
             // Insertar la tarea y verificar si la inserción fue exitosa
             long id = db.insert(TABLE_TAREAS, null, values);
-            tareaAgregada = id != -1;  // Si el ID es válido, la tarea fue agregada con éxito
+            if (id != -1) {
+                tarea.setId((int) id);  // Asignamos el ID generado
+                tareaAgregada = true;  // La tarea fue agregada con éxito
+            } else {
+                Log.e("BaseDeDatos", "Error al insertar tarea. ID no válido.");
+            }
         } catch (Exception e) {
             Log.e("BaseDeDatos", "Error al insertar tarea: " + e.getMessage());
         } finally {
@@ -130,6 +135,11 @@ public class BaseDatosTareas extends SQLiteOpenHelper {
 
     // Método para actualizar el estado de la tarea
     public int actualizarTarea(Tarea tarea) {
+        if (tarea.getId() <= 0) {
+            Log.e("BaseDeDatos", "ID de tarea no válido: " + tarea.getId());
+            return 0; // No realizamos ninguna actualización si el ID no es válido
+        }
+
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_ASIGNATURA, tarea.getAsignatura());
@@ -140,8 +150,20 @@ public class BaseDatosTareas extends SQLiteOpenHelper {
         values.put(COLUMN_ESTACOMPLETADA, tarea.estaCompletada() ? 1 : 0);
 
         int filasActualizadas = 0;
+
         try {
-            filasActualizadas = db.update(TABLE_TAREAS, values, COLUMN_ID + " = ?", new String[]{String.valueOf(tarea.getId())});
+            // Verificar si la tarea existe antes de intentar actualizarla
+            String selectQuery = "SELECT " + COLUMN_ID + " FROM " + TABLE_TAREAS + " WHERE " + COLUMN_ID + " = ?";
+            Cursor cursor = db.rawQuery(selectQuery, new String[]{String.valueOf(tarea.getId())});
+
+            if (cursor != null && cursor.moveToFirst()) {
+                // Si existe, actualizamos la tarea
+                filasActualizadas = db.update(TABLE_TAREAS, values, COLUMN_ID + " = ?", new String[]{String.valueOf(tarea.getId())});
+            } else {
+                // Si no existe, logueamos un mensaje
+                Log.e("BaseDeDatos", "Tarea con ID " + tarea.getId() + " no encontrada.");
+            }
+            if (cursor != null) cursor.close(); // Cerrar el cursor si se abrió
         } catch (Exception e) {
             Log.e("BaseDeDatos", "Error al actualizar tarea: " + e.getMessage());
         } finally {

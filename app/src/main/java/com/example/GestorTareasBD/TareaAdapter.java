@@ -49,20 +49,19 @@ public class TareaAdapter extends RecyclerView.Adapter<TareaAdapter.TareaViewHol
     @SuppressLint("SetTextI18n") // Ignoramos una advertencia sobre concatenar texto.
     @Override
     public void onBindViewHolder(@NonNull TareaViewHolder holder, int position) {
-        // Obtenemos la tarea correspondiente a esta posición en la lista.
+        // Obtener la tarea actual en esta posición
         Tarea tareaActual = listaTareas.get(position);
 
-        // Llenamos las vistas con los datos de la tarea.
-        holder.asignaturaTextView.setText(tareaActual.getAsignatura()); // Nombre de la asignatura.
-        holder.tituloTextView.setText(tareaActual.getTitulo()); // Título de la tarea.
-        holder.descripcionTextView.setText(tareaActual.getDescripcion()); // Descripción de la tarea.
-        holder.fechaEntregaTextView.setText("Fecha de entrega: " + tareaActual.getFechaEntrega()); // Fecha de entrega.
-        holder.horaEntregaTextView.setText("Hora de entrega: " + tareaActual.getHoraEntrega()); // Hora de entrega.
-        holder.estadoTextView.setText(tareaActual.estaCompletada() ? "Completada" : "Pendiente"); // Estado de la tarea.
+        // Llenar las vistas con la información actual de la tarea
+        holder.asignaturaTextView.setText(tareaActual.getAsignatura());
+        holder.tituloTextView.setText(tareaActual.getTitulo());
+        holder.descripcionTextView.setText(tareaActual.getDescripcion());
+        holder.fechaEntregaTextView.setText("Fecha de entrega: " + tareaActual.getFechaEntrega());
+        holder.horaEntregaTextView.setText("Hora de entrega: " + tareaActual.getHoraEntrega());
+        holder.estadoTextView.setText(tareaActual.estaCompletada() ? "Completada" : "Pendiente");
 
-        // Configuramos un evento de clic para la tarea.
+        // Configurar el evento de clic para la tarea
         holder.itemView.setOnClickListener(v -> listener.onTareaClick(tareaActual));
-        // Cuando se hace clic, llamamos al método del listener con la tarea actual.
     }
 
 
