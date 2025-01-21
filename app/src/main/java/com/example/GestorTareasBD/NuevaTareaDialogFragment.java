@@ -25,43 +25,37 @@ import java.util.Calendar;
 public class NuevaTareaDialogFragment extends DialogFragment {
 
     // Campos del formulario
-    private EditText campoTitulo;        // Para el título de la tarea
-    private EditText campoDescripcion;  // Para la descripción de la tarea
-    private EditText campoFechaEntrega; // Para la fecha de entrega
-    private EditText campoHoraEntrega;  // Para la hora de entrega
-    private Spinner spinnerAsignatura;  // Para seleccionar la asignatura
-    private OnTareaGuardadaListener listener; // Para notificar cuando se guarda una tarea
-    private Tarea tareaAEditar;         // La tarea que se está editando (si aplica)
+    private EditText campoTitulo;
+    private EditText campoDescripcion;
+    private EditText campoFechaEntrega;
+    private EditText campoHoraEntrega;
+    private Spinner spinnerAsignatura;
+    private OnTareaGuardadaListener listener;
+    private Tarea tareaAEditar;
 
-
-    // Método que se ejecuta cuando se crea el cuadro de diálogo
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        // Asegurarse de que la actividad que llama al diálogo no sea nula
         if (getActivity() == null) {
             return super.onCreateDialog(savedInstanceState);
         }
 
-        // Crear el cuadro de diálogo
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         LayoutInflater layoutInflater = requireActivity().getLayoutInflater();
-        View vista = layoutInflater.inflate( R.layout.agregar_tarea, null);
+        View vista = layoutInflater.inflate(R.layout.agregar_tarea, null);
 
-        // Asociar las vistas del formulario con sus campos en el diseño XML
+        // Asociar campos con sus elementos en el XML
         campoTitulo = vista.findViewById(R.id.titulo);
         campoDescripcion = vista.findViewById(R.id.descripcion);
         campoFechaEntrega = vista.findViewById(R.id.fecha);
         campoHoraEntrega = vista.findViewById(R.id.hora);
         spinnerAsignatura = vista.findViewById(R.id.Spinner);
 
-        // Mostrar un selector de fecha al hacer clic en el campo de fecha
+        // Manejadores de fecha y hora
         campoFechaEntrega.setOnClickListener(v -> mostrarDatePickerDialog());
-
-        // Mostrar un selector de hora al hacer clic en el campo de hora
         campoHoraEntrega.setOnClickListener(v -> mostrarTimePickerDialog());
 
-        // Si se pasa una tarea para editar, llenar los campos con sus datos
+        // Si es tarea a editar, cargar los datos
         if (getArguments() != null) {
             tareaAEditar = getArguments().getParcelable("homework");
             if (tareaAEditar != null) {
@@ -73,37 +67,67 @@ public class NuevaTareaDialogFragment extends DialogFragment {
             }
         }
 
-        // Configurar el botón "Guardar"
+        // Configuración del botón "Guardar"
         Button botonGuardar = vista.findViewById(R.id.guardar);
         botonGuardar.setOnClickListener(v -> {
-            if (validarEntradas()) { // Verificar que los campos no estén vacíos
+            // Deshabilitar el botón para evitar doble clic
+            botonGuardar.setEnabled(false);
+
+            if (validarEntradas()) {
                 Tarea tarea = new Tarea(
                         spinnerAsignatura.getSelectedItem().toString(),
                         campoTitulo.getText().toString(),
                         campoDescripcion.getText().toString(),
                         campoFechaEntrega.getText().toString(),
                         campoHoraEntrega.getText().toString(),
-                        false // La tarea comienza como "pendiente"
+                        false
                 );
 
-                // Notificar que la tarea se guardó
+                // Si es tarea a editar, actualizar la base de datos, si no, agregarla
+                if (tareaAEditar != null) {
+                    tarea.setId(tareaAEditar.getId());
+                    actualizarTareaEnBaseDeDatos(tarea);
+                } else {
+                    agregarTareaEnBaseDeDatos(tarea);
+                }
+
                 if (listener != null) {
                     listener.onTareaGuardada(tarea);
                 }
-                dismiss(); // Cerrar el cuadro de diálogo
+
+                dismiss();
+            } else {
+                botonGuardar.setEnabled(true);  // Habilitar el botón de nuevo si hubo error
             }
         });
 
-        // Configurar el botón "Cancelar"
+        // Configuración del botón "Cancelar"
         Button botonCancelar = vista.findViewById(R.id.cancelar);
         botonCancelar.setOnClickListener(v -> dismiss());
 
-        builder.setView(vista); // Establecer la vista personalizada
-        return builder.create(); // Crear y devolver el cuadro de diálogo
+        builder.setView(vista);
+        return builder.create();
+    }
+
+    // Agregar tarea en la base de datos
+    private void agregarTareaEnBaseDeDatos(Tarea tarea) {
+        BaseDatosTareas dbHelper = new BaseDatosTareas(getContext());
+        boolean tareaAgregada = dbHelper.agregarTarea(tarea); // Ahora devuelve un booleano
+
+        if (tareaAgregada) {
+            // Si la tarea fue agregada exitosamente, se puede establecer un ID ficticio o manejar de otra manera
+            tarea.setId(0); // Por ejemplo, establecer el ID a 0 o lo que sea apropiado
+        }
     }
 
 
-    // Obtener el índice de una asignatura en el spinner
+    // Actualizar tarea en la base de datos
+    private void actualizarTareaEnBaseDeDatos(Tarea tarea) {
+        BaseDatosTareas dbHelper = new BaseDatosTareas(getContext());
+        dbHelper.actualizarTarea(tarea);
+    }
+
+    // Obtener el índice de la asignatura seleccionada en el spinner
     private int getIndice(Spinner spinnerAsignatura, String asignatura) {
         for (int i = 0; i < spinnerAsignatura.getCount(); i++) {
             if (spinnerAsignatura.getItemAtPosition(i).toString().equalsIgnoreCase(asignatura)) {
@@ -113,20 +137,17 @@ public class NuevaTareaDialogFragment extends DialogFragment {
         return 0;
     }
 
-
-    // Interfaz para manejar el evento de guardar una tarea
+    // Interface para la notificación de tarea guardada
     public interface OnTareaGuardadaListener {
         void onTareaGuardada(Tarea tarea);
     }
 
-
-    // Establecer el listener para el evento
+    // Establecer el listener para tarea guardada
     public void setOnTareaGuardadaListener(OnTareaGuardadaListener listener) {
         this.listener = listener;
     }
 
-
-    // Mostrar el selector de fecha
+    // Mostrar el DatePickerDialog para seleccionar la fecha de entrega
     private void mostrarDatePickerDialog() {
         Calendar calendar = Calendar.getInstance();
         if (getContext() == null) return;
@@ -141,8 +162,7 @@ public class NuevaTareaDialogFragment extends DialogFragment {
         ).show();
     }
 
-
-    // Mostrar el selector de hora
+    // Mostrar el TimePickerDialog para seleccionar la hora de entrega
     private void mostrarTimePickerDialog() {
         Calendar calendar = Calendar.getInstance();
         if (getContext() == null) return;
@@ -157,8 +177,7 @@ public class NuevaTareaDialogFragment extends DialogFragment {
         ).show();
     }
 
-
-    // Validar que los campos no estén vacíos
+    // Validar las entradas del formulario
     private boolean validarEntradas() {
         if (TextUtils.isEmpty(campoTitulo.getText())) {
             campoTitulo.setError("El título es obligatorio");
