@@ -1,4 +1,4 @@
-package com.example.GestorTareasBD;
+package com.example.GestorTareasBDRoom;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -23,22 +24,26 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
+    // Creando una instancia del Executor para ejecutar tareas en segundo plano
+    private Executor executor = Executors.newSingleThreadExecutor();
+
     private RecyclerView recyclerView;  // Vista para mostrar una lista de tareas
     private TareaAdapter adaptador;     // Adaptador para conectar la lista de tareas con la vista
-    private List<Tarea> listaTareas;    // Lista que contiene las tareas a mostrar
     private BaseDatosTareas baseDatosTareas; // Instancia de la base de datos
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this); // Configurar diseño sin bordes (opcional)
-        setContentView( R.layout.activity_main);
+        setContentView(R.layout.activity_main);
 
         // Configurar la disposición de la actividad principal para adaptarse a los bordes del sistema
+        // Esto solo es necesario si se quiere manejar el recorte de bordes del sistema
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.activity_main), (vista, insets) -> {
             Insets bordesSistema = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             vista.setPadding(bordesSistema.left, bordesSistema.top, bordesSistema.right, bordesSistema.bottom);
@@ -48,58 +53,29 @@ public class MainActivity extends AppCompatActivity {
         // Inicializar vistas y la base de datos
         recyclerView = findViewById(R.id.recyclerView);
         FloatingActionButton botonFlotante = findViewById(R.id.fab);
-        baseDatosTareas = new BaseDatosTareas(this);
+        baseDatosTareas = BaseDatosTareas.obtenerInstancia(this); // Usar el método singleton para obtener la instancia
 
-        listaTareas = new ArrayList<>();
-        adaptador = new TareaAdapter(listaTareas, this::mostrarOpcionesTarea);
-
+        adaptador = new TareaAdapter(new ArrayList<>(), this::mostrarOpcionesTarea);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adaptador);
 
         botonFlotante.setOnClickListener(v -> mostrarDialogoTarea(null));
 
-        cargarTareasDesdeBaseDeDatos();
-        ordenarTareas();
+        // Observar las tareas desde la base de datos
+        baseDatosTareas.tareaDao().obtenerTareas().observe(this, new Observer<List<Tarea>>() {
+            @Override
+            public void onChanged(List<Tarea> tareas) {
+                if (tareas != null) {
+                    ordenarTareas(tareas);
+                    adaptador.setTareas(tareas); // Actualizar la lista en el adaptador
+                }
+            }
+        });
     }
 
-    private void cargarTareasDesdeBaseDeDatos() {
-        listaTareas.clear();
-        listaTareas.addAll(baseDatosTareas.obtenerTareas());
-        ordenarTareas();
-    }
-
-    private void agregarTareaBD(Tarea tarea) {
-        if (tarea.getId() == 0) {
-            tarea.setId(generateNewId());  // Generar un nuevo ID si no tiene
-        }
-
-        if (baseDatosTareas.agregarTarea(tarea)) {
-            cargarTareasDesdeBaseDeDatos();
-        } else {
-            Log.e("MainActivity", "Error al agregar la tarea: " + tarea.getTitulo());
-        }
-    }
-
-    private void eliminarTareaBD(Tarea tarea) {
-        if (tarea.getId() > 0) {
-            baseDatosTareas.eliminarTarea(tarea.getId());
-            cargarTareasDesdeBaseDeDatos();
-        } else {
-            Log.e("MainActivity", "ID de tarea no válido para eliminación: " + tarea.getId());
-        }
-    }
-
-    private void actualizarTareaBD(Tarea tarea) {
-        if (baseDatosTareas.actualizarTarea(tarea) > 0) {
-            cargarTareasDesdeBaseDeDatos(); // Recargar tareas desde la base de datos
-            adaptador.notifyDataSetChanged(); // Forzar la actualización del RecyclerView
-        } else {
-            Log.e("MainActivity", "Error al actualizar la tarea: " + tarea.getTitulo());
-        }
-    }
-
-    private void ordenarTareas() {
-        listaTareas.sort((t1, t2) -> {
+    // Método para ordenar las tareas por asignatura y fecha
+    private void ordenarTareas(List<Tarea> tareas) {
+        tareas.sort((t1, t2) -> {
             int asignaturaComparison = t1.getAsignatura().compareTo(t2.getAsignatura());
             if (asignaturaComparison != 0) return asignaturaComparison;
 
@@ -113,9 +89,53 @@ public class MainActivity extends AppCompatActivity {
                 return 0;
             }
         });
-        adaptador.notifyDataSetChanged();
     }
 
+    // Método para agregar una tarea en la base de datos
+    private void agregarTareaBD(Tarea tarea) {
+        // Usamos el executor para ejecutar la operación en segundo plano
+        executor.execute(() -> {
+            long id = baseDatosTareas.tareaDao().insertarTarea(tarea);
+            runOnUiThread(() -> {
+                if (id != -1) {
+                    Log.d("MainActivity", "Tarea agregada con éxito: " + tarea.getTitulo());
+                    Toast.makeText(MainActivity.this, "Tarea agregada con éxito", Toast.LENGTH_SHORT).show();
+                } else {
+                    Log.e("MainActivity", "Error al agregar la tarea: " + tarea.getTitulo());
+                    Toast.makeText(MainActivity.this, "Error al agregar tarea", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+    }
+
+    // Método para eliminar una tarea de la base de datos
+    private void eliminarTareaBD(Tarea tarea) {
+        executor.execute(() -> {
+            baseDatosTareas.tareaDao().eliminarTarea(tarea);
+            runOnUiThread(() -> {
+                Log.d("MainActivity", "Tarea eliminada: " + tarea.getTitulo());
+                Toast.makeText(MainActivity.this, "Tarea eliminada", Toast.LENGTH_SHORT).show();
+            });
+        });
+    }
+
+    // Método para actualizar una tarea en la base de datos
+    private void actualizarTareaBD(Tarea tarea) {
+        executor.execute(() -> {
+            int rowsAffected = baseDatosTareas.tareaDao().actualizarTarea(tarea);
+            runOnUiThread(() -> {
+                if (rowsAffected > 0) {
+                    Log.d("MainActivity", "Tarea actualizada con éxito: " + tarea.getTitulo());
+                    Toast.makeText(MainActivity.this, "Tarea actualizada", Toast.LENGTH_SHORT).show();
+                } else {
+                    Log.e("MainActivity", "Error al actualizar la tarea: " + tarea.getTitulo());
+                    Toast.makeText(MainActivity.this, "Error al actualizar tarea", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+    }
+
+    // Mostrar el diálogo para agregar o editar una tarea
     private void mostrarDialogoTarea(Tarea tareaAEditar) {
         NuevaTareaDialogFragment dialogo = new NuevaTareaDialogFragment();
         if (tareaAEditar != null) {
@@ -135,6 +155,7 @@ public class MainActivity extends AppCompatActivity {
         dialogo.show(getSupportFragmentManager(), "DialogoTarea");
     }
 
+    // Mostrar las opciones para editar, eliminar o marcar como completada una tarea
     private void mostrarOpcionesTarea(Tarea tarea) {
         BottomSheetDialog dialogoOpciones = new BottomSheetDialog(this);
         View vistaOpciones = getLayoutInflater().inflate(R.layout.tareas_opciones, null);
@@ -160,6 +181,7 @@ public class MainActivity extends AppCompatActivity {
         dialogoOpciones.show();
     }
 
+    // Confirmar la eliminación de una tarea
     private void confirmarEliminacion(Tarea tarea) {
         new AlertDialog.Builder(this)
                 .setTitle("Confirmar eliminación")
@@ -167,10 +189,5 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("Eliminar", (dialog, which) -> eliminarTareaBD(tarea))
                 .setNegativeButton("Cancelar", null)
                 .show();
-    }
-
-    // Generador de un nuevo ID si es necesario
-    private int generateNewId() {
-        return listaTareas.size() + 1;  // Método simple para generar un nuevo ID
     }
 }

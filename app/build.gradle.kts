@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "com.example.tarea_7_gestortareas"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.tarea_7_gestortareas"
@@ -33,11 +33,11 @@ android {
 
 dependencies {
 
+    implementation(libs.lifecycle.livedata.core)
+    implementation(libs.room.common)
     implementation(libs.appcompat)
+    implementation(libs.recyclerview)
+    implementation(libs.room.runtime)
     implementation(libs.material)
-    implementation(libs.activity)
-    implementation(libs.constraintlayout)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)
+    annotationProcessor(libs.room.compiler)
 }

@@ -1,24 +1,31 @@
-package com.example.GestorTareasBD;
+package com.example.GestorTareasBDRoom;
+
 
 import android.os.Parcel;
 import android.os.Parcelable;
 
-// Clase Tarea: representa una tarea que puede ser asignada y completada.
-// Implementa Parcelable para permitir que se envíen objetos Tarea entre componentes de Android (como Activities y Fragments).
+import androidx.annotation.NonNull;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+// Room requiere que los modelos de datos estén anotados con @Entity, y las columnas dentro de la tabla con @ColumnInfo.
+// También, el ID de la tabla debe estar anotado con @PrimaryKey.
+@Entity(tableName = "tareas")
 public class Tarea implements Parcelable {
 
-    // Atributos de la clase Tarea:
-    private int id;                // ID único de la tarea (utilizado para la base de datos).
-    private String asignatura;      // Nombre de la asignatura (por ejemplo, PMDM, AD, etc.).
-    private String titulo;          // Título o nombre de la tarea.
-    private String descripcion;     // Descripción detallada de la tarea.
-    private String fechaEntrega;    // Fecha en la que la tarea debe entregarse (formato: dd/MM/yyyy).
-    private String horaEntrega;     // Hora en la que la tarea debe entregarse (formato: HH:mm).
-    private boolean estaCompletada; // Indica si la tarea está completada (true) o pendiente (false).
+    @PrimaryKey(autoGenerate = true)
+    private int id;
+    private String asignatura;
+    private String titulo;
+    private String descripcion;
+    private String fechaEntrega;
+    private String horaEntrega;
+    private boolean estaCompletada;
 
-    // Constructor con ID
-    public Tarea(int id, String asignatura, String titulo, String descripcion, String fechaEntrega, String horaEntrega, boolean estaCompletada) {
-        this.id = id;
+    // Constructor, getters y setters
+
+    public Tarea(String asignatura, String titulo, String descripcion,
+                 String fechaEntrega, String horaEntrega, boolean estaCompletada) {
         this.asignatura = asignatura;
         this.titulo = titulo;
         this.descripcion = descripcion;
@@ -27,17 +34,28 @@ public class Tarea implements Parcelable {
         this.estaCompletada = estaCompletada;
     }
 
-    // Constructor sin ID (para insertar tareas)
-    public Tarea(String asignatura, String titulo, String descripcion, String fechaEntrega, String horaEntrega, boolean estaCompletada) {
-        this.asignatura = asignatura;
-        this.titulo = titulo;
-        this.descripcion = descripcion;
-        this.fechaEntrega = fechaEntrega;
-        this.horaEntrega = horaEntrega;
-        this.estaCompletada = estaCompletada;
+    protected Tarea(Parcel in) {
+        id = in.readInt ();
+        asignatura = in.readString ();
+        titulo = in.readString ();
+        descripcion = in.readString ();
+        fechaEntrega = in.readString ();
+        horaEntrega = in.readString ();
+        estaCompletada = in.readByte () != 0;
     }
 
-    // Métodos "getter" y "setter" para cada atributo.
+    public static final Creator<Tarea> CREATOR = new Creator<Tarea> () {
+        @Override
+        public Tarea createFromParcel(Parcel in) {
+            return new Tarea ( in );
+        }
+
+        @Override
+        public Tarea[] newArray(int size) {
+            return new Tarea[size];
+        }
+    };
+
     public int getId() {
         return id;
     }
@@ -94,43 +112,19 @@ public class Tarea implements Parcelable {
         this.estaCompletada = estaCompletada;
     }
 
-    // Parcelable: permite "empaquetar" objetos Tarea para enviarlos entre Activities o Fragments.
-
-    protected Tarea(Parcel in) {
-        id = in.readInt();
-        asignatura = in.readString();
-        titulo = in.readString();
-        descripcion = in.readString();
-        fechaEntrega = in.readString();
-        horaEntrega = in.readString();
-        estaCompletada = in.readByte() != 0;
-    }
-
-    public static final Creator<Tarea> CREATOR = new Creator<Tarea>() {
-        @Override
-        public Tarea createFromParcel(Parcel in) {
-            return new Tarea(in);
-        }
-
-        @Override
-        public Tarea[] newArray(int size) {
-            return new Tarea[size];
-        }
-    };
-
     @Override
     public int describeContents() {
         return 0;
     }
 
     @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeInt(id);
-        dest.writeString(asignatura);
-        dest.writeString(titulo);
-        dest.writeString(descripcion);
-        dest.writeString(fechaEntrega);
-        dest.writeString(horaEntrega);
-        dest.writeByte((byte) (estaCompletada ? 1 : 0));
+    public void writeToParcel(@NonNull Parcel parcel , int i) {
+        parcel.writeInt ( id );
+        parcel.writeString ( asignatura );
+        parcel.writeString ( titulo );
+        parcel.writeString ( descripcion );
+        parcel.writeString ( fechaEntrega );
+        parcel.writeString ( horaEntrega );
+        parcel.writeByte ( (byte) (estaCompletada ? 1 : 0) );
     }
 }

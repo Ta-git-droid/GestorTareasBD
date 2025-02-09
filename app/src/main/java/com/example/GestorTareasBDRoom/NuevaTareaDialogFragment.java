@@ -1,4 +1,4 @@
-package com.example.GestorTareasBD;
+package com.example.GestorTareasBDRoom;
 
 import android.app.DatePickerDialog;
 import android.app.Dialog;
@@ -19,24 +19,25 @@ import androidx.fragment.app.DialogFragment;
 
 import com.example.tarea_7_gestortareas.R;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 
 // Clase que representa un cuadro de diálogo para agregar o editar tareas
 public class NuevaTareaDialogFragment extends DialogFragment {
 
-    // Campos del formulario
     private EditText campoTitulo;
     private EditText campoDescripcion;
     private EditText campoFechaEntrega;
     private EditText campoHoraEntrega;
     private Spinner spinnerAsignatura;
     private OnTareaGuardadaListener listener;
-    private Tarea tareaAEditar; // Tarea a editar, si aplica
+    private Tarea tareaAEditar;
 
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        if (getActivity() == null) {
+        if (getActivity() == null || getContext() == null) {
             return super.onCreateDialog(savedInstanceState);
         }
 
@@ -53,6 +54,7 @@ public class NuevaTareaDialogFragment extends DialogFragment {
         campoFechaEntrega.setOnClickListener(v -> mostrarDatePickerDialog());
         campoHoraEntrega.setOnClickListener(v -> mostrarTimePickerDialog());
 
+        // Si estamos editando una tarea, rellenamos los campos
         if (getArguments() != null && getArguments().containsKey("homework")) {
             tareaAEditar = getArguments().getParcelable("homework");
             if (tareaAEditar != null) {
@@ -67,16 +69,32 @@ public class NuevaTareaDialogFragment extends DialogFragment {
         Button botonGuardar = vista.findViewById(R.id.guardar);
         botonGuardar.setOnClickListener(v -> {
             if (validarEntradas()) {
-                Tarea tarea = new Tarea(
-                        tareaAEditar != null ? tareaAEditar.getId() : -1, // Si estamos editando, usamos el ID de la tarea
-                        spinnerAsignatura.getSelectedItem().toString(),
-                        campoTitulo.getText().toString(),
-                        campoDescripcion.getText().toString(),
-                        campoFechaEntrega.getText().toString(),
-                        campoHoraEntrega.getText().toString(),
-                        false // La tarea comienza como "pendiente"
-                );
+                Tarea tarea;
 
+                if (tareaAEditar != null) {
+                    // Si estamos editando, mantenemos el ID
+                    tarea = new Tarea(
+                            tareaAEditar.getAsignatura(),
+                            campoTitulo.getText().toString(),
+                            campoDescripcion.getText().toString(),
+                            campoFechaEntrega.getText().toString(),
+                            campoHoraEntrega.getText().toString(),
+                            tareaAEditar.estaCompletada()
+                    );
+                    tarea.setId(tareaAEditar.getId()); // Aseguramos que el ID de la tarea no cambie
+                } else {
+                    // Si estamos creando una nueva tarea, no pasamos el ID
+                    tarea = new Tarea(
+                            spinnerAsignatura.getSelectedItem().toString(),
+                            campoTitulo.getText().toString(),
+                            campoDescripcion.getText().toString(),
+                            campoFechaEntrega.getText().toString(),
+                            campoHoraEntrega.getText().toString(),
+                            false // La tarea comienza como "pendiente"
+                    );
+                }
+
+                // Llamamos al listener para que guarde la tarea
                 if (listener != null) {
                     listener.onTareaGuardada(tarea);
                 }
@@ -114,7 +132,10 @@ public class NuevaTareaDialogFragment extends DialogFragment {
         new DatePickerDialog(
                 getContext(),
                 (DatePicker view, int year, int month, int dayOfMonth) -> {
-                    campoFechaEntrega.setText(dayOfMonth + "/" + (month + 1) + "/" + year);
+                    // Formato de la fecha: dd/MM/yyyy
+                    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                    calendar.set(year, month, dayOfMonth);
+                    campoFechaEntrega.setText(sdf.format(calendar.getTime()));
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
@@ -128,7 +149,8 @@ public class NuevaTareaDialogFragment extends DialogFragment {
         new TimePickerDialog(
                 getContext(),
                 (TimePicker view, int hourOfDay, int minute) -> {
-                    campoHoraEntrega.setText(String.format("%02d:%02d", hourOfDay, minute));
+                    // Formato de la hora: HH:mm
+                    campoHoraEntrega.setText(String.format( Locale.getDefault(), "%02d:%02d", hourOfDay, minute));
                 },
                 calendar.get(Calendar.HOUR_OF_DAY),
                 calendar.get(Calendar.MINUTE),
